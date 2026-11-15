@@ -24,7 +24,7 @@ namespace TavernLens.Hdt
         public string Description { get { return "英雄与饰品大数据"; } }
         public string ButtonText { get { return "设置"; } }
         public string Author { get { return "OpenBigc"; } }
-        public Version Version { get { return new Version(0, 1, 3); } }
+        public Version Version { get { return new Version(0, 1, 4); } }
         public MenuItem MenuItem { get { return null; } }
         private bool enabled, busy, startAttempted;
         private int generation;
@@ -147,7 +147,11 @@ namespace TavernLens.Hdt
             if (lastFrame == signature && width == lastWidth && height == lastHeight) return;
             layer.Children.Clear();
             lastFrame = signature; lastWidth = width; lastHeight = height;
-            double sw = Math.Min(width, height * 16 / 9), sh = Math.Min(height, width * 9 / 16);
+            bool trinket = kind == "trinket";
+            // Trinket choices use the centered 4:3 board, including in wide
+            // windows. Their spacing scales with board height, not screen width.
+            double aspect = trinket ? 4.0 / 3 : 16.0 / 9;
+            double sw = Math.Min(width, height * aspect), sh = sw / aspect;
             double sx = (width - sw) / 2, sy = (height - sh) / 2;
             double factor = Math.Max(.65, Math.Min(2.5, sh / 1080)) * Math.Max(.6, Math.Min(2, Number(frame, "scale", 1)));
             double ox = 0, oy = 0;
@@ -162,16 +166,16 @@ namespace TavernLens.Hdt
                 Brush color = Brushes.WhiteSmoke;
                 try { color = (Brush)new BrushConverter().ConvertFromString(Text(option, "color")); } catch { }
                 panel.Children.Add(new TextBlock { Text = Text(option, "average"), Foreground = color,
-                    FontFamily = new FontFamily("Microsoft YaHei UI"), FontSize = 16 * factor,
+                    FontFamily = new FontFamily("Microsoft YaHei UI"), FontSize = (trinket ? 14 : 16) * factor,
                     FontWeight = FontWeights.SemiBold, TextAlignment = TextAlignment.Center });
                 panel.Children.Add(new TextBlock { Text = Text(option, "details"), Foreground = new SolidColorBrush(Color.FromRgb(162, 168, 179)),
-                    FontFamily = new FontFamily("Microsoft YaHei UI"), FontSize = 11 * factor, TextAlignment = TextAlignment.Center });
-                double bw = 210 * factor, bh = 54 * factor;
+                    FontFamily = new FontFamily("Microsoft YaHei UI"), FontSize = (trinket ? 9 : 11) * factor, TextAlignment = TextAlignment.Center });
+                double bw = 210 * factor, bh = (trinket ? 31 : 54) * factor;
                 var box = new Border { Width = bw, Height = bh, Child = panel, IsHitTestVisible = false,
-                    Background = new SolidColorBrush(Color.FromArgb(230, 20, 24, 30)), BorderThickness = new Thickness(0, 1, 0, 0),
+                    Background = new SolidColorBrush(Color.FromArgb(230, 20, 24, 30)), BorderThickness = new Thickness(0, trinket ? factor : 1, 0, 0),
                     BorderBrush = new SolidColorBrush(Color.FromRgb(53, 62, 73)) };
                 Canvas.SetLeft(box, Clamp(sx + sw * (xs[slot - 1] + ox) - bw / 2, 0, width - bw));
-                Canvas.SetTop(box, Clamp(sy + sh * (.795 + oy), 0, height - bh));
+                Canvas.SetTop(box, Clamp(sy + sh * ((trinket ? .642 : .795) + oy), 0, height - bh));
                 layer.Children.Add(box);
             }
         }
@@ -183,9 +187,9 @@ namespace TavernLens.Hdt
                 if (count == 3) return new[] { .340, .504, .669 };
                 return new[] { .257, .422, .586, .751 };
             }
-            if (count == 2) return new[] { .487, .636 };
-            if (count == 3) return new[] { .412, .561, .711 };
-            return new[] { .337, .487, .636, .786 };
+            // Calibrated to the four card centers in the 4:3 trinket dialog.
+            // A shared midpoint also keeps two/three-option dialogs centered.
+            return Enumerable.Range(0, count).Select(i => .4875 + (i - (count - 1) / 2.0) * (5.0 / 24)).ToArray();
         }
 
         private static double Clamp(double value, double low, double high) { return Math.Max(low, Math.Min(high, value)); }
