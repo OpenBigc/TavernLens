@@ -37,3 +37,9 @@ The app reads endpoints identified in Zero-to-Heroes/firestone's published
 client source. No Firestone source code or collected statistics are bundled.
 Public reachability is not a grant of redistribution rights or an API service
 commitment. The MIT license here applies to our code, not to third-party data.
+
+## Packaged runtime
+
+Windows binaries bundle CPython and native runtime dependencies. Their notices
+are included in the release's `runtime-licenses` directory. These components
+retain their own licenses; the project's MIT license does not replace them.
