@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+build/
+dist/
+*.spec
+!TavernLens.spec
+.cache/
+settings.json
+*.log
+!tests/fixtures/offers.log
+.pytest_cache/
+work/
