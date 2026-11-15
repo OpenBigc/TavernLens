@@ -13,7 +13,7 @@ from tavernlens.installer import InstallError, install, hdt_running
 class InstallerTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
         self.payload = self.root / '解压目录 with spaces' / 'TavernLens'
         self.payload.mkdir(parents=True)
         (self.payload / '_internal').mkdir()
