@@ -63,10 +63,11 @@ class Service:
 
     def config_changed(self):
         try:
-            mtime = self.path.stat().st_mtime_ns
-            if mtime==self.last_mtime:
+            info = self.path.stat()
+            stamp = (info.st_mtime_ns,info.st_size)
+            if stamp==self.last_mtime:
                 return
-            self.last_mtime = mtime
+            self.last_mtime = stamp
             candidate = Config.load(self.path)
             old,self.config = self.config,candidate
             if candidate.logs!=old.logs:

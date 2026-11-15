@@ -1,4 +1,5 @@
 import json
+import os
 import queue
 import sys
 import tempfile
@@ -20,7 +21,7 @@ class ServiceTests(unittest.TestCase):
         s=self.service
         s.path=self.folder/'settings.json';s.config=Config(logs='test')
         s.config.save(s.path)
-        s.last_mtime=s.path.stat().st_mtime_ns
+        info=s.path.stat();s.last_mtime=(info.st_mtime_ns,info.st_size)
         s.refreshed=time.monotonic();s.generation=2;s.log_generation=2
         s.tables={};s.queue=queue.Queue();s.log_status='等待日志'
         s.active=Offer('hero',(Option('H1','英雄一',1),Option('H2','英雄二',2)))
@@ -41,7 +42,10 @@ class ServiceTests(unittest.TestCase):
 
     def test_invalid_settings_are_not_retried_and_logged_every_tick(self):
         s=self.service
+        stamp=s.path.stat().st_mtime_ns
         s.path.write_text('{bad json',encoding='utf-8')
+        # Some Windows filesystems expose equal timestamps for fast writes.
+        os.utime(s.path,ns=(stamp,stamp))
         with patch('tavernlens.service.logging.exception') as log:
             s.config_changed();s.config_changed()
         self.assertEqual(log.call_count,1)
