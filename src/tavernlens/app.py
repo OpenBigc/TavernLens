@@ -13,7 +13,12 @@ def main(argv=None):
     parser.add_argument('--check-data',action='store_true',help='检查统计接口后退出')
     parser.add_argument('--state-dir',type=Path,default=user_dir())
     parser.add_argument('--idle-timeout',type=float,default=0,help='HDT 断开后多少秒自动退出，0 为禁用')
+    parser.add_argument('--install',action='store_true',help='安装到当前用户的 HDT 插件目录')
+    parser.add_argument('--quiet',action='store_true',help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
+    if args.install:
+        from .installer import main as install
+        return install(quiet=args.quiet)
     args.state_dir.mkdir(parents=True,exist_ok=True)
     logging.basicConfig(filename=args.state_dir/'tavernlens.log',level=logging.INFO,
                         format='%(asctime)s %(levelname)s %(message)s')

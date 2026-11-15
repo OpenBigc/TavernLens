@@ -15,7 +15,9 @@ try {
     python tools/collect_runtime_licenses.py $appFolder
     if ($LASTEXITCODE -ne 0) { throw 'Runtime license collection failed' }
     $archive = Join-Path $projectRoot 'dist\TavernLens-HDT.zip'
-    Compress-Archive -LiteralPath $appFolder -DestinationPath $archive -Force
+    $installer = Join-Path $projectRoot 'dist\安装.cmd'
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot '安装.cmd') -Destination $installer
+    Compress-Archive -LiteralPath @($installer, $appFolder) -DestinationPath $archive -Force
     Get-Item -LiteralPath $archive | Select-Object FullName, Length
     Get-FileHash -LiteralPath $archive -Algorithm SHA256
 } finally {
