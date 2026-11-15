@@ -24,7 +24,7 @@ namespace TavernLens.Hdt
         public string Description { get { return "英雄与饰品大数据"; } }
         public string ButtonText { get { return "设置"; } }
         public string Author { get { return "OpenBigc"; } }
-        public Version Version { get { return new Version(0, 1, 2); } }
+        public Version Version { get { return new Version(0, 1, 3); } }
         public MenuItem MenuItem { get { return null; } }
         private bool enabled, busy, startAttempted;
         private int generation;

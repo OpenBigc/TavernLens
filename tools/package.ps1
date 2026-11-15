@@ -16,7 +16,9 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Runtime license collection failed' }
     $archive = Join-Path $projectRoot 'dist\TavernLens-HDT.zip'
     $installer = Join-Path $projectRoot 'dist\安装.cmd'
-    Copy-Item -LiteralPath (Join-Path $PSScriptRoot '安装.cmd') -Destination $installer
+    # Normalize the release artifact even when the working tree contains LF.
+    $script = [IO.File]::ReadAllText((Join-Path $PSScriptRoot '安装.cmd')) -replace "`r?`n", "`r`n"
+    [IO.File]::WriteAllText($installer, $script, (New-Object System.Text.UTF8Encoding($false)))
     Compress-Archive -LiteralPath @($installer, $appFolder) -DestinationPath $archive -Force
     Get-Item -LiteralPath $archive | Select-Object FullName, Length
     Get-FileHash -LiteralPath $archive -Algorithm SHA256
