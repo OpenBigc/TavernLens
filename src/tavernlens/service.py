@@ -8,6 +8,7 @@ from .config import Config, catalog
 from .follower import follow
 from .models import badges
 from .providers.firestone import Firestone
+from . import __version__
 
 
 class LogQueue:
@@ -105,7 +106,7 @@ class Service:
                     self.tables[table.kind] = table
         if self.active and time.monotonic()>=self.until:
             self.active = None
-        value = {'version':1,'active':bool(self.active),'scale':self.config.scale,
+        value = {'version':1,'build':__version__,'active':bool(self.active),'scale':self.config.scale,
                  'log_status':self.log_status,'tables':{k:{'rows':len(t.rows),
                     'updated_at':t.updated_at,'stale':t.stale,'error':bool(t.error)} for k,t in self.tables.items()}}
         if self.active:

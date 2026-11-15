@@ -13,7 +13,7 @@ from tavernlens.detection import OfferDetector
 from tavernlens.engine import Engine
 from tavernlens.models import badges, Offer, Option, Stat, Table
 from tavernlens.providers.firestone import Firestone, parse
-from tavernlens.follower import follow
+from tavernlens.follower import follow, latest_game_offset
 
 FIXTURES = Path(__file__).parent/'fixtures'
 CATALOG = {'heroes':['H1','H2','H3','H4'],'trinkets':['T1','T2','T3','T4'],
@@ -98,12 +98,44 @@ class EngineTests(unittest.TestCase):
         events=self.engine.process('D 10:00:03 PowerTaskList.DebugPrintPower() - tag=CARDRACE value=BEAST\n')
         self.assertEqual(events,[('hide',None)])
 
-    def test_local_reroll_recovers_missing_end_marker(self):
+    def test_manual_roll_does_not_reopen_an_already_finished_choice(self):
         self.draft()
         self.engine.process(combat(2))
         self.trinkets()
-        event=self.engine.process('D 10:00:03 PowerTaskList.DebugPrintPower() - BLOCK_START Entity=[entityName=Roll id=1 zone=PLAY zonePos=0 cardId=TB_BaconShop_8p_Reroll_Button player=3]\n')
-        self.assertEqual(event[0][1].kind,'trinket')
+        event=self.engine.process('D 10:00:03 PowerTaskList.DebugPrintPower() - BLOCK_START BlockType=PLAY Entity=[entityName=Roll id=1 zone=PLAY zonePos=0 cardId=TB_BaconShop_8p_Reroll_Button player=3]\n')
+        self.assertEqual(event,[])
+        self.assertIsNone(self.engine.pending)
+        self.assertEqual(self.engine.phase,'recruit')
+
+    def test_automatic_shop_setup_cannot_hide_trinket_before_ui_begin(self):
+        self.draft()
+        self.engine.process(combat(2))
+        self.trinkets()
+        self.engine.process(combat(0))
+        events=self.engine.process('D 10:00:03 PowerTaskList.DebugPrintPower() - BLOCK_START BlockType=TRIGGER Entity=[entityName=Roll id=1 zone=PLAY zonePos=0 cardId=TB_BaconShop_8p_Reroll_Button player=3]\n')
+        self.assertEqual(events,[])
+        self.assertEqual(self.engine.active.kind,'trinket')
+
+    def test_ui_begin_shows_trinket_without_combat_end_and_end_wait_hides_it(self):
+        self.engine.process(combat(6))
+        self.trinkets()
+        events=self.engine.process('D 10:00:10 ChoiceCardMgr.WaitThenShowChoices() - id=1 BEGIN\n')
+        self.assertEqual(events[0][1].kind,'trinket')
+        self.assertEqual(self.engine.phase,'recruit')
+        events=self.engine.process('D 10:00:15 ChoiceCardMgr.WaitThenHideChoicesFromPacket() - id=1 END WAIT\n')
+        self.assertEqual(events,[('hide',None)])
+
+    def test_unrelated_hide_marker_does_not_hide_current_trinket(self):
+        self.trinkets()
+        self.engine.process('D 10:00:10 ChoiceCardMgr.WaitThenHideChoicesFromPacket() - id=99 END WAIT\n')
+        self.assertEqual(self.engine.active.kind,'trinket')
+
+    def test_prefetched_discover_packet_does_not_hide_current_dialog(self):
+        self.trinkets()
+        lines=choice_lines(('M1','M2','M3','M4'))
+        lines[0]=lines[0].replace('id=1 Player=','id=2 Player=')
+        for line in lines:self.engine.process(line)
+        self.assertEqual(self.engine.active.kind,'trinket')
 
     def test_new_game_clears_pending_choice(self):
         self.engine.process(combat(2))
@@ -199,6 +231,20 @@ class PresentationTests(unittest.TestCase):
 
 
 class FollowerTests(unittest.TestCase):
+    def test_backfill_starts_at_game_state_not_later_power_task_list_copy(self):
+        with tempfile.TemporaryDirectory() as d:
+            path=Path(d)/'Power.log'
+            old=b'D 09:00:00 GameState.DebugPrintPower() - CREATE_GAME\n'
+            marker=b'D 10:00:00 GameState.DebugPrintPower() -     CREATE_GAME\n'
+            data=old+b'old data\n'*100+marker+b'hero options\n'+b'D 10:00:01 PowerTaskList.DebugPrintPower() - CREATE_GAME\n'
+            path.write_bytes(data)
+            self.assertEqual(latest_game_offset(path,128),data.index(marker))
+
+    def test_backfill_falls_back_to_start_for_old_fixture_without_marker(self):
+        with tempfile.TemporaryDirectory() as d:
+            path=Path(d)/'Power.log';path.write_bytes(b'D 10:00:00 no marker\n')
+            self.assertEqual(latest_game_offset(path),0)
+
     def test_startup_backfill_is_silent_and_partial_lines_are_buffered(self):
         with tempfile.TemporaryDirectory() as d:
             root=Path(d);session=root/'Hearthstone_test';session.mkdir()

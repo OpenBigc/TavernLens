@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tavernlens"
-version = "0.1.0"
+version = "0.1.1"
 description = "Lightweight Chinese Battlegrounds hero and trinket stats overlay"
 requires-python = ">=3.10"
 license = {text = "MIT"}

@@ -1,7 +1,26 @@
 import time
 import os
+import re
 from pathlib import Path
 from .engine import Engine
+
+GAME_START = re.compile(rb'^D [\d:.]+ GameState\.DebugPrintPower\(\) -\s+CREATE_GAME\b',re.MULTILINE)
+
+
+def latest_game_offset(path, block_size=2*1024*1024):
+    """Seek to the last GameState CREATE_GAME, not the delayed screen copy."""
+    with path.open('rb') as file:
+        end = path.stat().st_size
+        while end:
+            start = max(0,end-block_size)
+            file.seek(start)
+            matches = list(GAME_START.finditer(file.read(end-start)))
+            if matches:
+                return start+matches[-1].start()
+            if start==0:
+                break
+            end = start+min(512,block_size//2)
+    return 0
 
 
 def newest_log(root):
@@ -38,6 +57,8 @@ def follow(root, catalog, queue, stop):
                     current,fragment,dirty = path,'',False
                     queue.put(('hide',None))
                     if initial:
+                        status('正在回填本局日志')
+                        file.seek(latest_game_offset(path))
                         # Learn the local player without showing historical
                         # choices when starting in the middle of a game.
                         for line in file:
