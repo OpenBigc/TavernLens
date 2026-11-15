@@ -60,6 +60,9 @@ powershell -NoProfile -File renderers/hdt/build.ps1 -HdtPath "E:\Programs\HDT"
 
 输出 `dist/TavernLens/`。HDT 主程序仅作为编译引用，不会随包分发。维护新版本卡牌目录：`python tools/update_catalog.py` 后重建。
 
+一次性构建并生成安装包：`powershell -NoProfile -File tools/package.ps1 -HdtPath "E:\Programs\HDT"`。
+输出 `dist/TavernLens-HDT.zip`，包内有安装说明。
+
 ## 数据口径
 
 统计读取 Firestone 客户端使用的公开可访问地址：
